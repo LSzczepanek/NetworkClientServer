@@ -6,7 +6,7 @@ import java.net.Socket;
 
 public class Server implements Runnable {
 
-	protected int serverPort = 8080;
+	protected int serverPort = 0;
 	protected ServerSocket serverSocket = null;
 	protected boolean isStopped = false;
 	protected Thread runningThread = null;
@@ -57,17 +57,5 @@ public class Server implements Runnable {
 		}
 	}
 
-	public static void main(String[] args) {
-		Server server = new Server(9001);
-		new Thread(server).start();
-
-		try {
-			Thread.sleep(5 * 60 * 1000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		System.out.println("Stopping Server");
-		server.stop();
-	}
-
+	
 }

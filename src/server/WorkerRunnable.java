@@ -25,10 +25,12 @@ public class WorkerRunnable implements Runnable {
 			PrintWriter output = new PrintWriter(clientSocket.getOutputStream());
 			long time = System.currentTimeMillis();
 			String str;
+			String clientNickname = null;
+			clientNickname = input.readLine();
 			do
 		      {                                                            
 		      str=input.readLine();                                                    
-		      System.out.println("<Nadeszlo:> " + str); 
+		      System.out.println(String.format("<%s:> " + str, clientNickname)); 
 		      }while(!(str.equals("close")));
 			System.out.println("Request processed: " + time);
 		} catch (IOException e) {
