@@ -14,9 +14,8 @@ public class WorkerRunnable implements Runnable {
 	protected Socket clientSocket = null;
 	protected String serverText = null;
 
-	public WorkerRunnable(Socket clientSocket, String serverText) {
+	public WorkerRunnable(Socket clientSocket) {
 		this.clientSocket = clientSocket;
-		this.serverText = serverText;
 	}
 
 	public void run() {
