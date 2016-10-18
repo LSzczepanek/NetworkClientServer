@@ -9,6 +9,7 @@ import java.net.MulticastSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -92,18 +93,22 @@ public class ClientHelper {
 		int time = 0;
 		String[] parametersFromServer;
 		DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
+		String msg;
 
 		long startTime = System.nanoTime();
 		long estimatedTime = 0;
+	
 		do {
 			try {
+				mcSocket.setSoTimeout(2000);
 				mcSocket.receive(packet);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				System.out.println("Waiting for responses");
+				msg = "DISCOVER";
 			}
 
-			String msg = new String(packet.getData(), packet.getOffset(), packet.getLength());
+			msg = new String(packet.getData(), packet.getOffset(), packet.getLength());
 			if (!msg.equalsIgnoreCase("discover")) {
 				System.out.println("[Multicast  Receiver] Odpowiedz " + msg);
 				
@@ -122,8 +127,8 @@ public class ClientHelper {
 				time++;
 			}
 			estimatedTime = System.nanoTime() - startTime;
-			System.out.println("Actual Time used is: " + (estimatedTime/SECOND_IN_NANOSECONDS));
-		} while (estimatedTime < 10*SECOND_IN_NANOSECONDS);
+			System.out.println("Actual Time used is: " + ((double) estimatedTime/SECOND_IN_NANOSECONDS));
+		} while (estimatedTime < 5*SECOND_IN_NANOSECONDS);
 		System.out.println("Check: " + serversResponses);
 
 		try {
