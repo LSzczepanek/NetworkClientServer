@@ -9,19 +9,19 @@ import java.net.Socket;
 /**
 
  */
-public class WorkerRunnable implements Runnable {
+public class ClientService implements Runnable {
 
 	protected Socket clientSocket = null;
 	protected String serverText = null;
 
-	public WorkerRunnable(Socket clientSocket) {
+	public ClientService(Socket clientSocket) {
 		this.clientSocket = clientSocket;
 	}
 
 	public void run() {
 		try {
 			BufferedReader input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-			PrintWriter output = new PrintWriter(clientSocket.getOutputStream());
+			//PrintWriter output = new PrintWriter(clientSocket.getOutputStream());
 			long time = System.currentTimeMillis();
 			String str;
 			String clientNickname = null;

@@ -28,22 +28,11 @@ public class Server implements Runnable {
 			this.runningThread = Thread.currentThread();
 		}
 		openServerSocket();
+		openMulticastSocket();
+		waitForClient();
 		//openMulticastSocket();	
 		
-		while (!isStopped()) {
-			Socket clientSocket = null;
-			try {
-				System.out.println("Waiting for client");
-				clientSocket = this.serverSocket.accept();
-			} catch (IOException e) {
-				if (isStopped()) {
-					System.out.println("Server Stopped.");
-					return;
-				}
-				throw new RuntimeException("Error accepting client connection", e);
-			}
-			new Thread(new WorkerRunnable(clientSocket)).start();
-		}
+
 		System.out.println("Server Stopped.");
 	}
 
@@ -63,34 +52,31 @@ public class Server implements Runnable {
 	private void openServerSocket() {
 		try {
 			this.serverSocket = new ServerSocket(this.serverPort);
+			System.out.println("Serwer running at: "+serverSocket);
 		} catch (IOException e) {
 			throw new RuntimeException("Cannot open port: " + this.serverPort, e);
 		}
 	}
 	
-	private void openMulticastSocket() throws IOException{
-		int mcPort = 7;
-		String mcIPStr = "230.1.1.1"; //adres grupy multicastowej
-		MulticastSocket mcSocket = null;
-		InetAddress mcIPAddress = null;
-		mcIPAddress = InetAddress.getByName(mcIPStr);
-		mcSocket = new MulticastSocket(mcPort);
-		System.out.println("Multicast Receiver running at:" + mcSocket.getLocalSocketAddress());
-		mcSocket.joinGroup(mcIPAddress);
-		mcSocket.setReuseAddress(true);
-
-		DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
-
-		System.out.println("Waiting for a  multicast message...");
-		int time = 0;
-		do {
-			mcSocket.receive(packet);
-			String msg = new String(packet.getData(), packet.getOffset(), packet.getLength());
-			System.out.println("[Multicast  Receiver] Received:" + msg);
-			time++;
-		}while(time < 100);
-		mcSocket.leaveGroup(mcIPAddress);
-		mcSocket.close();
+	private void waitForClient(){
+		while (!isStopped()) {
+			Socket clientSocket = null;
+			try {
+				System.out.println("Waiting for client");
+				clientSocket = this.serverSocket.accept();
+			} catch (IOException e) {
+				if (isStopped()) {
+					System.out.println("Server Stopped.");
+					return;
+				}
+				throw new RuntimeException("Error accepting client connection", e);
+			}
+			new Thread(new ClientService(clientSocket)).start();
+		}
+	}
+	
+	private void openMulticastSocket() {
+		new Thread(new MulticastReceiver(this.serverPort, this.serverName, this.serverSocket.getInetAddress())).start();
 	}
 	}
 

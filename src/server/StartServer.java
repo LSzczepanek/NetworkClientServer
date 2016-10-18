@@ -3,6 +3,9 @@ package server;
 public class StartServer {
 
 	public static void main(String[] args) {
+		
+		
+		
 		Server server = new Server(9000, "server1");
 		new Thread(server).start();
 
