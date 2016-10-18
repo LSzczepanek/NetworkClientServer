@@ -12,6 +12,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Timer;
 import java.util.concurrent.TimeUnit;
 
 public class ClientHelper {
@@ -22,7 +23,7 @@ public class ClientHelper {
 	private static InetAddress mcIPAddress = null;
 	private static SocketAddress result;
 	private static ArrayList<ListHelper<String, InetAddress, Integer>> serversResponses = new ArrayList<>();
-
+	private final static long SECOND_IN_NANOSECONDS = 1000000000;
 	static SocketAddress lookForServer(Socket clientSocket) {
 		createAndOpenMulticastSocket();
 		sendDiscover();
@@ -92,6 +93,8 @@ public class ClientHelper {
 		String[] parametersFromServer;
 		DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
 
+		long startTime = System.nanoTime();
+		long estimatedTime = 0;
 		do {
 			try {
 				mcSocket.receive(packet);
@@ -115,10 +118,13 @@ public class ClientHelper {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				System.out.println("Check: " + serversResponses);
+				//System.out.println("Check: " + serversResponses);
 				time++;
 			}
-		} while (time < 100);
+			estimatedTime = System.nanoTime() - startTime;
+			System.out.println("Actual Time used is: " + (estimatedTime/SECOND_IN_NANOSECONDS));
+		} while (estimatedTime < 10*SECOND_IN_NANOSECONDS);
+		System.out.println("Check: " + serversResponses);
 
 		try {
 			mcSocket.leaveGroup(mcIPAddress);
