@@ -33,7 +33,7 @@ public class Server implements Runnable {
 		//openMulticastSocket();	
 		
 
-		System.out.println("Server Stopped.");
+		System.out.println("Server Stopped in run.");
 	}
 
 	private synchronized boolean isStopped() {
@@ -66,7 +66,7 @@ public class Server implements Runnable {
 				clientSocket = this.serverSocket.accept();
 			} catch (IOException e) {
 				if (isStopped()) {
-					System.out.println("Server Stopped.");
+					System.out.println("Server Stopped in waitForClient.");
 					return;
 				}
 				throw new RuntimeException("Error accepting client connection", e);

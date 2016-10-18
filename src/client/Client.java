@@ -17,44 +17,57 @@ import java.nio.charset.Charset;
 import java.util.Scanner;
 
 public class Client {
-	
 
 	public static void main(String[] args) throws IOException {
 		String msg = null;
-		Scanner odczyt = new Scanner(System.in);
+		Scanner input = new Scanner(System.in);
 		System.out.print("Podaj nickname: ");
-		String nickname = odczyt.nextLine();
+		String nickname = input.nextLine();
 		Socket clientSocket = new Socket();
+		int frequency;
 		clientSocket.bind(null);
 		System.out.println("Nawiazalem polaczenie: " + clientSocket.getLocalPort());
 		SocketAddress test = ClientHelper.lookForServer(clientSocket);
-		System.out.println("Socket Address: "+ test);
+		System.out.println("Socket Address: " + test);
 		clientSocket.connect(test);
-		//clientSocket = new Socket(HOST, PORT);
+		// clientSocket = new Socket(HOST, PORT);
 		System.out.println("Nawiazalem polaczenie: " + clientSocket);
 
-		BufferedReader input;
-		input = new BufferedReader(new InputStreamReader(System.in));
 		BufferedReader fromServer;
 		fromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 		PrintWriter output;
 		output = new PrintWriter(clientSocket.getOutputStream());
 
 		output.println(nickname);
+		do {
+			System.out.println("Wybierz czestotliwosc wysylania liczb od 10-10 000: ");
+
+			frequency = input.nextInt();
+			if (frequency < 10 || frequency > 10000) {
+				System.out.println("Czestotliwosc spoza zakresu!");
+			}
+		} while (frequency < 10 || frequency > 10000);
 
 		do {
-			System.out.print("<Wysylamy:> ");
-			msg = input.readLine();
+
+			// System.out.print("<Wysylamy:> ");
+			msg = Integer.toString(((int) (Math.random() * 100)));
+			// msg = input.readLine();
 			output.println(msg);
 			output.flush();
+
+			try {
+				Thread.sleep(frequency);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		} while (!(msg.equals("close")));
 
-		odczyt.close();
 		input.close();
 		fromServer.close();
 		output.close();
 		clientSocket.close();
 	}
-
 
 }

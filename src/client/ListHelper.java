@@ -1,9 +1,9 @@
 package client;
 
 public class ListHelper<String, InetAddress, Integer> {
-	    public String serverName;
-	    public InetAddress inetAddress;
-	    public Integer port;
+	    private String serverName;
+	    private InetAddress inetAddress;
+	    private Integer port;
 		
 	    public ListHelper(String serverName, InetAddress inetAddress, Integer port) {
 			super();

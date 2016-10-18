@@ -25,6 +25,7 @@ public class ClientHelper {
 	private static SocketAddress result;
 	private static ArrayList<ListHelper<String, InetAddress, Integer>> serversResponses = new ArrayList<>();
 	private final static long SECOND_IN_NANOSECONDS = 1000000000;
+
 	static SocketAddress lookForServer(Socket clientSocket) {
 		createAndOpenMulticastSocket();
 		sendDiscover();
@@ -90,14 +91,16 @@ public class ClientHelper {
 
 	@SuppressWarnings("unchecked")
 	private static void waitForResponses(Socket clientSocket) {
-		int time = 0;
+
 		String[] parametersFromServer;
 		DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
 		String msg;
+		String olderMsg = "null";
 
 		long startTime = System.nanoTime();
 		long estimatedTime = 0;
-	
+		boolean exit = false;
+
 		do {
 			try {
 				mcSocket.setSoTimeout(2000);
@@ -109,12 +112,13 @@ public class ClientHelper {
 			}
 
 			msg = new String(packet.getData(), packet.getOffset(), packet.getLength());
-			if (!msg.equalsIgnoreCase("discover")) {
+
+			if (!msg.equalsIgnoreCase("discover") && !olderMsg.equals(msg)) {
 				System.out.println("[Multicast  Receiver] Odpowiedz " + msg);
-				
+				olderMsg = msg;
 				parametersFromServer = msg.split(",");
 				for (String x : parametersFromServer)
-				System.out.println(x);
+					System.out.println(x);
 				try {
 					serversResponses.add(new ListHelper<String, InetAddress, Integer>(parametersFromServer[0],
 							InetAddress.getByName(parametersFromServer[1]), Integer.parseInt(parametersFromServer[2])));
@@ -123,21 +127,40 @@ public class ClientHelper {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				//System.out.println("Check: " + serversResponses);
-				time++;
+
 			}
 			estimatedTime = System.nanoTime() - startTime;
-			System.out.println("Actual Time used is: " + ((double) estimatedTime/SECOND_IN_NANOSECONDS));
-		} while (estimatedTime < 5*SECOND_IN_NANOSECONDS);
-		System.out.println("Check: " + serversResponses);
+			System.out.println("Actual Time used is: " + ((double) estimatedTime / SECOND_IN_NANOSECONDS));
+		} while (estimatedTime < 5 * SECOND_IN_NANOSECONDS);
 
+		do {
+			exit = false;
+			if (serversResponses.size() != 0) {
+				for (int i = 0; i < serversResponses.size(); i++) {
+					System.out.printf("Serwer nr%d: " + serversResponses.get(i) + "\n", i + 1);
+				}
+				System.out.println("Choose server to connect by number: ");
+				
+				try {
+					result = new InetSocketAddress(packet.getAddress(),
+							serversResponses.get(((int) System.in.read())-49).getPort());
+				} catch (IOException | IndexOutOfBoundsException e) {
+					System.out.println("Wrong server number!\nTry once again!");
+					exit = true;
+					e.printStackTrace();
+				}
+			} else {
+
+				System.out.println("There is no servers avalaible at the moment");
+			}
+			
+		} while (exit);
 		try {
 			mcSocket.leaveGroup(mcIPAddress);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		result = new InetSocketAddress(packet.getAddress(), 9000);
 
 		mcSocket.close();
 	}
