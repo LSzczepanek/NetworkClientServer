@@ -21,17 +21,15 @@ public class Server implements Runnable {
 		this.serverName = serverName;
 	}
 
-	
-	
 	public void run() {
 		synchronized (this) {
 			this.runningThread = Thread.currentThread();
 		}
 		openServerSocket();
 		openMulticastSocket();
+		// System.out.println("Adres serwera: "+serverSocket.getInetAddress());
 		waitForClient();
-		//openMulticastSocket();	
-		
+		// openMulticastSocket();
 
 		System.out.println("Server Stopped in run.");
 	}
@@ -52,17 +50,17 @@ public class Server implements Runnable {
 	private void openServerSocket() {
 		try {
 			this.serverSocket = new ServerSocket(this.serverPort);
-			System.out.println("Serwer running at: "+serverSocket);
+			System.out.println("Serwer running at: " + serverSocket);
 		} catch (IOException e) {
 			throw new RuntimeException("Cannot open port: " + this.serverPort, e);
 		}
 	}
-	
-	private void waitForClient(){
+
+	private void waitForClient() {
 		while (!isStopped()) {
 			Socket clientSocket = null;
 			try {
-				System.out.println("Waiting for client");
+				// System.out.println("Waiting for client");
 				clientSocket = this.serverSocket.accept();
 			} catch (IOException e) {
 				if (isStopped()) {
@@ -74,9 +72,8 @@ public class Server implements Runnable {
 			new Thread(new ClientService(clientSocket)).start();
 		}
 	}
-	
+
 	private void openMulticastSocket() {
 		new Thread(new MulticastReceiver(this.serverPort, this.serverName, this.serverSocket.getInetAddress())).start();
 	}
-	}
-
+}

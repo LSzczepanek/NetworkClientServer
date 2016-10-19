@@ -22,11 +22,28 @@ public class ClientHelper {
 	private static String mcIPStr = "230.1.1.1"; // adres grupy multicastowej
 	private static MulticastSocket mcSocket = null;
 	private static InetAddress mcIPAddress = null;
+	private static InetAddress serverAddress = null;
 	private static SocketAddress result;
 	private static ArrayList<ListHelper<String, InetAddress, Integer>> serversResponses = new ArrayList<>();
 	private final static long SECOND_IN_NANOSECONDS = 1000000000;
 
-	static SocketAddress lookForServer(Socket clientSocket) {
+	static InetAddress getServerAddress() {
+		return serverAddress;
+	}
+
+	static void clearConnections(){
+		mcSocket = null;
+		mcIPAddress = null;
+		serverAddress = null;
+		result = null;
+		serversResponses.clear();
+	}
+	
+	static SocketAddress reconnectToLastServer(){
+		return result;
+	}
+	
+	static SocketAddress lookForServer() {
 		createAndOpenMulticastSocket();
 		sendDiscover();
 		try {
@@ -35,7 +52,7 @@ public class ClientHelper {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		waitForResponses(clientSocket);
+		waitForResponses();
 		return result;
 	}
 
@@ -90,7 +107,7 @@ public class ClientHelper {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static void waitForResponses(Socket clientSocket) {
+	private static void waitForResponses() {
 
 		String[] parametersFromServer;
 		DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
@@ -103,7 +120,7 @@ public class ClientHelper {
 
 		do {
 			try {
-				mcSocket.setSoTimeout(2000);
+				mcSocket.setSoTimeout(1000);
 				mcSocket.receive(packet);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -134,27 +151,30 @@ public class ClientHelper {
 		} while (estimatedTime < 5 * SECOND_IN_NANOSECONDS);
 
 		do {
-			exit = false;
+			exit = true;
 			if (serversResponses.size() != 0) {
 				for (int i = 0; i < serversResponses.size(); i++) {
 					System.out.printf("Serwer nr%d: " + serversResponses.get(i) + "\n", i + 1);
 				}
 				System.out.println("Choose server to connect by number: ");
-				
+
 				try {
-					result = new InetSocketAddress(packet.getAddress(),
-							serversResponses.get(((int) System.in.read())-49).getPort());
+					byte option = (byte) ((byte) ((int) System.in.read()) - 49);
+					result = new InetSocketAddress(packet.getAddress(), serversResponses.get(option).getPort());
+					serverAddress = serversResponses.get(option).getInetAddress();
 				} catch (IOException | IndexOutOfBoundsException e) {
 					System.out.println("Wrong server number!\nTry once again!");
-					exit = true;
+					exit = false;
 					e.printStackTrace();
 				}
 			} else {
 
 				System.out.println("There is no servers avalaible at the moment");
+				result = null;
 			}
-			
-		} while (exit);
+
+		} while (!exit);
+		serversResponses.clear();
 		try {
 			mcSocket.leaveGroup(mcIPAddress);
 		} catch (IOException e) {
