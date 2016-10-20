@@ -8,6 +8,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.rmi.ServerRuntimeException;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
@@ -19,6 +20,7 @@ public class Client {
 	private static BufferedReader fromServer = null;
 	private static PrintWriter output = null;
 	private static int frequency;
+	static String serverAnswer;
 
 	public static void main(String[] args) throws IOException {
 
@@ -27,16 +29,7 @@ public class Client {
 		do {
 			if (serverStatusCheck(ClientHelper.getServerAddress(), clientSocket.getPort())) {
 
-				msg = Integer.toString(((int) (Math.random() * 100)));
-				output.println(msg);
-				output.flush();
-
-				try {
-					Thread.sleep(frequency);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+				startSendingRandomNumbers();
 
 			} else {
 				System.out.println("Do you want try to recconnect to the last sever?");
@@ -85,10 +78,9 @@ public class Client {
 	private static void makeConnection() {
 		ClientHelper.clearConnections();
 		Scanner input = new Scanner(System.in);
-		//input.reset();
-		System.out.print("Podaj nickname: ");
-		nickname = input.nextLine();
-		
+		boolean serverAcceptance;
+		// input.reset();
+
 		clientSocket = new Socket();
 
 		System.out.println("Nawiazalem polaczenie: " + clientSocket.getLocalPort());
@@ -103,7 +95,26 @@ public class Client {
 
 			output = new PrintWriter(clientSocket.getOutputStream());
 
-			output.println(nickname);
+			do {
+				System.out.print("Podaj nickname: ");
+				System.in.read(new byte[System.in.available()]);
+				nickname = input.nextLine();
+
+				output.println(nickname);
+				output.flush();
+				serverAnswer = fromServer.readLine();
+
+				if (serverAnswer.equalsIgnoreCase("Succed")) {
+					System.out.println("Nickname accepted");
+					serverAcceptance = false;
+				} else {
+					System.out.println("Nickname rejected\nPut another nickname");
+					serverAcceptance = true;
+				}
+			} while (serverAcceptance);
+			System.out.println(serverAnswer);
+			// serverText = fromServer.readLine();
+			// System.out.println(serverText);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -118,11 +129,13 @@ public class Client {
 			}
 		} while (frequency < 10 || frequency > 10000);
 
-		//input.reset();
+		// input.reset();
 	}
 
 	private static boolean reconnect() {
 
+		Scanner input = new Scanner(System.in);
+		boolean serverAcceptance = false;
 		clientSocket = new Socket();
 		SocketAddress connectionAddressToServer = ClientHelper.reconnectToLastServer();
 		System.out.println("Socket Address: " + connectionAddressToServer);
@@ -134,14 +147,48 @@ public class Client {
 			fromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
 			output = new PrintWriter(clientSocket.getOutputStream());
+			
+			
 
-			output.println(nickname);
+			do {
+				
+				if(serverAcceptance){
+				System.out.print("Podaj nickname: ");
+				System.in.read(new byte[System.in.available()]);
+				nickname = input.nextLine();
+				}
+				output.println(nickname);
+				output.flush();
+				serverAnswer = fromServer.readLine();
+
+				if (serverAnswer.equalsIgnoreCase("Succed")) {
+					System.out.println("Nickname accepted");
+					serverAcceptance = false;
+				} else {
+					System.out.println("Nickname rejected\nPut another nickname");
+					serverAcceptance = true;
+				}
+			} while (serverAcceptance);
 
 			return true;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		return false;
+	}
+	
+	
+	private static void startSendingRandomNumbers(){
+		msg = Integer.toString(((int) (Math.random() * 100)));
+		output.println(msg);
+		output.flush();
+
+		try {
+			Thread.sleep(frequency);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 }

@@ -14,6 +14,10 @@ public class Server implements Runnable {
 	protected String serverName;
 	protected static ArrayList<String> listOfNicknames;
 
+	
+	
+	
+	
 	public Server(int port, String serverName) {
 		this.serverPort = port;
 		this.serverName = serverName;
@@ -26,13 +30,19 @@ public class Server implements Runnable {
 		}
 		openServerSocket();
 		openMulticastSocket();
-		// System.out.println("Adres serwera: "+serverSocket.getInetAddress());
 		waitForClient();
-		// openMulticastSocket();
-
 		System.out.println("Server Stopped in run.");
 	}
 
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	private synchronized boolean isStopped() {
 		return this.isStopped;
 	}
@@ -68,10 +78,15 @@ public class Server implements Runnable {
 				}
 				throw new RuntimeException("Error accepting client connection", e);
 			}
-			new Thread(new ClientService(clientSocket)).start();
+			new Thread(new ServerServiceForClient(clientSocket)).start();
 		}
 	}
 
+	/**
+	 * Opens MulticastSocket on another Thread and listening for DISCOVER message
+	 * 
+	 */
+	
 	private void openMulticastSocket() {
 		new Thread(new MulticastReceiver(this.serverPort, this.serverName, this.serverSocket.getInetAddress())).start();
 	}
@@ -89,10 +104,7 @@ public class Server implements Runnable {
 		synchronized (Server.listOfNicknames) {
 			if (!checkNickname(nickname)) {
 				Server.listOfNicknames.add(nickname);
-				for (String x : Server.listOfNicknames) {
-					System.out.println("Nickname add: " + x);
-					
-				}
+				System.out.println(nickname+" connected to the server!");
 				success = true;
 			}else{
 				success = false;
@@ -101,16 +113,27 @@ public class Server implements Runnable {
 		return success;
 	}
 
+	
+	/**
+     * If Client will dc his nickname will be realeased
+     * 
+     * 
+     */
 	static protected void removeNickname(String nickname) {
 		synchronized (listOfNicknames) {
 			Server.listOfNicknames.remove(nickname);
-			for (String x : Server.listOfNicknames) {
-				System.out.println("Nickname remove: " + x);
-			}
+			System.out.println("Nick: "+nickname+" has been released");
 		}
 
 	}
 
+	
+	/**
+	 * Checks client nickname already exist on server
+	 * @param nickname
+	 * @return true if nickname is already taken on server
+	 */
+	
 	static private boolean checkNickname(String nickname) {
 		if (listOfNicknames.contains(nickname)) {
 

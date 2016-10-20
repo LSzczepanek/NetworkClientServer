@@ -28,25 +28,24 @@ public class ClientHelper {
 		return serverAddress;
 	}
 
-	static void clearConnections(){
+	static void clearConnections() {
 		mcSocket = null;
 		mcIPAddress = null;
 		serverAddress = null;
 		result = null;
 		serversResponses.clear();
 	}
-	
-	static SocketAddress reconnectToLastServer(){
+
+	static SocketAddress reconnectToLastServer() {
 		return result;
 	}
-	
+
 	static SocketAddress lookForServer() {
 		createAndOpenMulticastSocket();
 		sendDiscover();
 		try {
 			TimeUnit.SECONDS.sleep(3);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		waitForResponses();
@@ -73,7 +72,7 @@ public class ClientHelper {
 	}
 
 	private static void sendDiscover() {
-		
+
 		DatagramSocket socket = null;
 
 		try {
