@@ -6,14 +6,11 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
-import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
-import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Timer;
 import java.util.concurrent.TimeUnit;
 
 public class ClientHelper {
@@ -25,7 +22,7 @@ public class ClientHelper {
 	private static InetAddress serverAddress = null;
 	private static SocketAddress result;
 	private static ArrayList<ListHelper<String, InetAddress, Integer>> serversResponses = new ArrayList<>();
-	private final static long SECOND_IN_NANOSECONDS = 1000000000;
+	public final static long SECOND_IN_NANOSECONDS = 1000000000;
 
 	static InetAddress getServerAddress() {
 		return serverAddress;
@@ -76,7 +73,7 @@ public class ClientHelper {
 	}
 
 	private static void sendDiscover() {
-		DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
+		
 		DatagramSocket socket = null;
 
 		try {

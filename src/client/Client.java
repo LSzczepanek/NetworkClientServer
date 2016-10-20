@@ -88,6 +88,7 @@ public class Client {
 		//input.reset();
 		System.out.print("Podaj nickname: ");
 		nickname = input.nextLine();
+		
 		clientSocket = new Socket();
 
 		System.out.println("Nawiazalem polaczenie: " + clientSocket.getLocalPort());
