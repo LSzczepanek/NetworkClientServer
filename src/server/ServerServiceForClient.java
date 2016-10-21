@@ -44,8 +44,8 @@ public class ServerServiceForClient implements Runnable {
 			}
 			clientSocket.close();
 			input.close();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (IOException e ) {
+			System.out.println("Someone interrupted connection!!");
 
 		}
 	}

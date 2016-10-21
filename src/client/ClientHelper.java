@@ -15,10 +15,10 @@ import java.util.concurrent.TimeUnit;
 
 public class ClientHelper {
 
-	private static int mcPort = 12345;
-	private static String mcIPStr = "230.1.1.1"; // adres grupy multicastowej
+	private static int groupPort = 12345;
+	private static String groupIPStr = "230.1.1.1"; // adres grupy multicastowej
 	private static MulticastSocket mcSocket = null;
-	private static InetAddress mcIPAddress = null;
+	private static InetAddress groupIPAddress = null;
 	private static InetAddress serverAddress = null;
 	private static SocketAddress result;
 	private static ArrayList<ListHelper<String, InetAddress, Integer>> serversResponses = new ArrayList<>();
@@ -30,7 +30,7 @@ public class ClientHelper {
 
 	static void clearConnections() {
 		mcSocket = null;
-		mcIPAddress = null;
+		groupIPAddress = null;
 		serverAddress = null;
 		result = null;
 		serversResponses.clear();
@@ -55,9 +55,9 @@ public class ClientHelper {
 	private static void createAndOpenMulticastSocket() {
 
 		try {
-			mcIPAddress = InetAddress.getByName(mcIPStr);
-			mcSocket = new MulticastSocket(mcPort);
-			mcSocket.joinGroup(mcIPAddress);
+			groupIPAddress = InetAddress.getByName(groupIPStr);
+			mcSocket = new MulticastSocket(groupPort);
+			mcSocket.joinGroup(groupIPAddress);
 			mcSocket.setReuseAddress(true);
 		} catch (SocketException e) {
 			// TODO Auto-generated catch block
@@ -74,46 +74,46 @@ public class ClientHelper {
 	private static void sendDiscover() {
 
 		DatagramSocket socket = null;
-
 		try {
 			socket = new DatagramSocket();
 			socket.setBroadcast(true);
-		} catch (SocketException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-
-		String characters = "DISCOVER";
-		byte[] data; // = new byte[characters.length()];
-		data = characters.getBytes(Charset.forName("UTF-8"));
-		DatagramPacket dp = null;
-
-		try {
-			dp = new DatagramPacket(data, data.length, InetAddress.getByName("255.255.255.255"), 12345);
-		} catch (UnknownHostException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		try {
+			String characters = "DISCOVER";
+			byte[] data; 
+			data = characters.getBytes(Charset.forName("UTF-8"));
+			DatagramPacket dp = null;
+			dp = new DatagramPacket(data, data.length, InetAddress.getByName("255.255.255.255"), groupPort);
 			socket.send(dp);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			System.out.println("Something went wrong while sending DISCOVER message");
 			e.printStackTrace();
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	private static void waitForResponses() {
 
-		String[] parametersFromServer;
+		
 		DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
+	
+		getListOfOnlineServers(packet);
+		chooseAndConnectToServer(packet);
+		serversResponses.clear();
+		try {
+			mcSocket.leaveGroup(groupIPAddress);
+		} catch (IOException e) {
+			System.out.println("Problem with leaving multicast group");
+			e.printStackTrace();
+		}
+
+		mcSocket.close();
+	}
+	
+	
+	private static void getListOfOnlineServers(DatagramPacket packet){
+		String[] parametersFromServer;
 		String msg;
 		String olderMsg = "null";
-
 		long startTime = System.nanoTime();
 		long estimatedTime = 0;
-		boolean exit = false;
-
 		do {
 			try {
 				mcSocket.setSoTimeout(1000);
@@ -130,14 +130,12 @@ public class ClientHelper {
 				System.out.println("[Multicast  Receiver] Odpowiedz " + msg);
 				olderMsg = msg;
 				parametersFromServer = msg.split(",");
-				for (String x : parametersFromServer)
-					System.out.println(x);
 				try {
 					serversResponses.add(new ListHelper<String, InetAddress, Integer>(parametersFromServer[0],
 							InetAddress.getByName(parametersFromServer[1]), Integer.parseInt(parametersFromServer[2])));
 
 				} catch (NumberFormatException | UnknownHostException e) {
-					// TODO Auto-generated catch block
+					System.out.println("Something went wrong while getting list of servers");
 					e.printStackTrace();
 				}
 
@@ -145,7 +143,11 @@ public class ClientHelper {
 			estimatedTime = System.nanoTime() - startTime;
 			System.out.println("Actual Time used is: " + ((double) estimatedTime / SECOND_IN_NANOSECONDS));
 		} while (estimatedTime < 5 * SECOND_IN_NANOSECONDS);
-
+	}
+	
+	
+	private static void chooseAndConnectToServer(DatagramPacket packet){
+		boolean exit = false;
 		do {
 			exit = true;
 			if (serversResponses.size() != 0) {
@@ -155,13 +157,14 @@ public class ClientHelper {
 				System.out.println("Choose server to connect by number: ");
 
 				try {
+					System.in.read(new byte[System.in.available()]);
 					byte option = (byte) ((byte) ((int) System.in.read()) - 49);
 					result = new InetSocketAddress(packet.getAddress(), serversResponses.get(option).getPort());
 					serverAddress = serversResponses.get(option).getInetAddress();
 				} catch (IOException | IndexOutOfBoundsException e) {
 					System.out.println("Wrong server number!\nTry once again!");
 					exit = false;
-					e.printStackTrace();
+					
 				}
 			} else {
 
@@ -170,15 +173,6 @@ public class ClientHelper {
 			}
 
 		} while (!exit);
-		serversResponses.clear();
-		try {
-			mcSocket.leaveGroup(mcIPAddress);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		mcSocket.close();
 	}
 	// return result;
 }
