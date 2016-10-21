@@ -1,5 +1,9 @@
 package client;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -11,6 +15,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
 public class ClientHelper {
@@ -20,9 +25,12 @@ public class ClientHelper {
 	private static MulticastSocket mcSocket = null;
 	private static InetAddress groupIPAddress = null;
 	private static InetAddress serverAddress = null;
+	private static int serverPort = 0;
 	private static SocketAddress result;
 	private static ArrayList<ListHelper<String, InetAddress, Integer>> serversResponses = new ArrayList<>();
 	public final static long SECOND_IN_NANOSECONDS = 1000000000;
+	static final int Y = 121;
+	static final int N = 110;
 
 	static InetAddress getServerAddress() {
 		return serverAddress;
@@ -32,6 +40,7 @@ public class ClientHelper {
 		mcSocket = null;
 		groupIPAddress = null;
 		serverAddress = null;
+		serverPort = 0;
 		result = null;
 		serversResponses.clear();
 	}
@@ -78,7 +87,7 @@ public class ClientHelper {
 			socket = new DatagramSocket();
 			socket.setBroadcast(true);
 			String characters = "DISCOVER";
-			byte[] data; 
+			byte[] data;
 			data = characters.getBytes(Charset.forName("UTF-8"));
 			DatagramPacket dp = null;
 			dp = new DatagramPacket(data, data.length, InetAddress.getByName("255.255.255.255"), groupPort);
@@ -91,9 +100,8 @@ public class ClientHelper {
 
 	private static void waitForResponses() {
 
-		
 		DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
-	
+
 		getListOfOnlineServers(packet);
 		chooseAndConnectToServer(packet);
 		serversResponses.clear();
@@ -106,9 +114,8 @@ public class ClientHelper {
 
 		mcSocket.close();
 	}
-	
-	
-	private static void getListOfOnlineServers(DatagramPacket packet){
+
+	private static void getListOfOnlineServers(DatagramPacket packet) {
 		String[] parametersFromServer;
 		String msg;
 		String olderMsg = "null";
@@ -144,9 +151,8 @@ public class ClientHelper {
 			System.out.println("Actual Time used is: " + ((double) estimatedTime / SECOND_IN_NANOSECONDS));
 		} while (estimatedTime < 5 * SECOND_IN_NANOSECONDS);
 	}
-	
-	
-	private static void chooseAndConnectToServer(DatagramPacket packet){
+
+	private static void chooseAndConnectToServer(DatagramPacket packet) {
 		boolean exit = false;
 		do {
 			exit = true;
@@ -157,14 +163,16 @@ public class ClientHelper {
 				System.out.println("Choose server to connect by number: ");
 
 				try {
-					System.in.read(new byte[System.in.available()]);
+					ClientHelper.cleanSystemInStream();
 					byte option = (byte) ((byte) ((int) System.in.read()) - 49);
-					result = new InetSocketAddress(packet.getAddress(), serversResponses.get(option).getPort());
 					serverAddress = serversResponses.get(option).getInetAddress();
+					serverPort = serversResponses.get(option).getPort();
+					result = new InetSocketAddress(serverAddress, serverPort);
+
 				} catch (IOException | IndexOutOfBoundsException e) {
 					System.out.println("Wrong server number!\nTry once again!");
 					exit = false;
-					
+
 				}
 			} else {
 
@@ -174,5 +182,82 @@ public class ClientHelper {
 
 		} while (!exit);
 	}
-	// return result;
+
+	static void cleanSystemInStream() throws IOException {
+		System.in.read(new byte[System.in.available()]);
+	}
+
+	static void saveLastServer(String nickname) throws IOException {
+
+		String[] toSave = { nickname, serverAddress.toString(), String.valueOf(serverPort) };
+		FileWriter lastConnection = new FileWriter("LastConnection.txt");
+		BufferedWriter bufferedWriter = new BufferedWriter(lastConnection);
+
+		try {
+			for (String argument : toSave) {
+				bufferedWriter.write(argument);
+				bufferedWriter.newLine();
+			}
+		} finally {
+			bufferedWriter.close();
+		}
+
+		System.out.println("File has been saved");
+	}
+
+	static String[] readFromFile() {
+		try {
+			File file = new File("LastConnection.txt");
+			if (file.exists()) {
+
+				System.out.println("Saved file with last server exist!");
+				Scanner read = new Scanner(file);
+				String[] lastSave = new String[3];
+
+				for (int i = 0; i < lastSave.length; i++) {
+					ClientHelper.cleanSystemInStream();
+					lastSave[i] = read.nextLine();
+				}
+				return lastSave;
+			} else {
+				System.out.println("There is no last save connection!");
+				return null;
+			}
+		} catch (IOException e) {
+			System.out.println("Error while reading a file!");
+			return null;
+		}
+	}
+
+	static boolean loadSave(String[] lastSave) throws IOException {
+
+		boolean isSucceed = false;
+		int choice = 0;
+		try {
+			serverAddress = InetAddress.getByName(lastSave[1].replace("/", ""));
+			serverPort = Integer.parseInt(lastSave[2]);
+			result = new InetSocketAddress(serverAddress, serverPort);
+		} catch (NumberFormatException | UnknownHostException e) {
+			e.printStackTrace();
+		}
+		System.out.println("Last time you connected with this server");
+		System.out.println("Do you want to reconnect to it? Type y or n");
+		
+		do {
+			ClientHelper.cleanSystemInStream();
+			choice = ((int) System.in.read());
+			if (choice == ClientHelper.Y) {
+				System.out.println("Tries to reconnect...");
+				isSucceed = true;
+			} else if (choice == ClientHelper.N) {
+				ClientHelper.cleanSystemInStream();
+				isSucceed = false;
+			} else {
+				System.out.println("You typed wrong!! Choose again!!");
+			}
+		} while (!(choice == ClientHelper.Y ^ choice == ClientHelper.N));
+		return isSucceed;
+
+	}
+
 }
