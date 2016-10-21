@@ -14,6 +14,12 @@ public class MulticastReceiver implements Runnable {
 	private int serverPort = 0;
 	private String serverName = null;
 	private InetAddress serverSocket = null;
+
+	int groupPort = 12345;
+	String groupIPStr = "230.1.1.1"; // adres grupy multicastowej
+	MulticastSocket mcSocket = null;
+	InetAddress groupIPAddress = null;
+
 	/* ww w .j av a 2 s .c o m */
 	public MulticastReceiver(int serverPort, String serverName, InetAddress serverSocket) {
 		this.serverPort = serverPort;
@@ -23,87 +29,57 @@ public class MulticastReceiver implements Runnable {
 
 	@Override
 	public void run() {
-		// TODO Auto-generated method stub
-		int mcPort = 12345;
-		String mcIPStr = "230.1.1.1"; // adres grupy multicastowej
-		MulticastSocket mcSocket = null;
-		InetAddress mcIPAddress = null;
-		try {
-			mcIPAddress = InetAddress.getByName(mcIPStr);
-		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		System.out.println("Ustawilem IP na: " + mcIPAddress);
-		try {
-			mcSocket = new MulticastSocket(mcPort);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		System.out.println("Postawilem Mullticast Socket");
-		System.out.println("Multicast Receiver running at:" + mcSocket.getLocalSocketAddress());
-		try {
-			mcSocket.joinGroup(mcIPAddress);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		System.out.println("Dolaczylem do grupy");
-		try {
-			mcSocket.setReuseAddress(true);
-		} catch (SocketException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		System.out.println("Adres moze byc uzyty ponownie");
 
-		DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
-
-		System.out.println("Waiting for a  multicast message...");
-		int time = 0;
-		do {
-			try {
-				mcSocket.receive(packet);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			String msg = new String(packet.getData(), packet.getOffset(), packet.getLength());
-			
-			if (msg.equals("DISCOVER")) {
-			System.out.println("[Multicast  Receiver] Client nas szuka: " + msg);
-			
-
-			DatagramSocket udpSocket = null;
-			try {
-				udpSocket = new DatagramSocket();
-			} catch (SocketException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-			String testAddress = serverName +","+serverSocket.getHostAddress()+","+serverPort;
-			byte[] msg2 = testAddress.getBytes();
-			DatagramPacket packet2 = new DatagramPacket(msg2, msg2.length);
-			packet2.setAddress(mcIPAddress);
-			packet2.setPort(mcPort);
-			try {
-				udpSocket.send(packet2);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			udpSocket.close();
-			
-			}
-			time++;
-		} while (time < 100);
 		try {
-			mcSocket.leaveGroup(mcIPAddress);
+			createAndRunMulticastSocket();
+			waitForDiscover();
+			mcSocket.leaveGroup(groupIPAddress);
 		} catch (IOException e) {
+			System.out.println("Error!!! We can't listen on group!");
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		mcSocket.close();
 	}
-} 
+
+	void createAndRunMulticastSocket() throws IOException {
+
+		groupIPAddress = InetAddress.getByName(groupIPStr);
+		System.out.println("Address IP of multicast group: " + groupIPAddress);
+		mcSocket = new MulticastSocket(groupPort);
+		System.out.println("Multicast Socket is running");
+		mcSocket.joinGroup(groupIPAddress);
+		mcSocket.setReuseAddress(true);
+		System.out.println("Multicast Receiver running at:" + mcSocket.getLocalSocketAddress());
+
+	}
+
+	void waitForDiscover() throws IOException {
+		
+		DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
+		System.out.println("Waiting for a  multicast message...");
+		int time = 0;
+		do {
+			mcSocket.receive(packet);
+			String msg = new String(packet.getData(), packet.getOffset(), packet.getLength());
+			if (msg.equals("DISCOVER")) {
+				System.out.println("[Multicast  Receiver] We get msg: " + msg);
+				DatagramSocket udpSocket = null;
+				try {
+					udpSocket = new DatagramSocket();
+				} catch (SocketException e1) {
+					System.out.println("Error while making DatagramSocket");
+					e1.printStackTrace();
+				}
+				String testAddress = serverName + "," + serverSocket.getHostAddress() + "," + serverPort;
+				byte[] msg2 = testAddress.getBytes();
+				DatagramPacket packet2 = new DatagramPacket(msg2, msg2.length);
+				packet2.setAddress(groupIPAddress);
+				packet2.setPort(groupPort);
+				udpSocket.send(packet2);
+				udpSocket.close();
+			}
+			time++;
+		} while (time < 100);
+	}
+}
